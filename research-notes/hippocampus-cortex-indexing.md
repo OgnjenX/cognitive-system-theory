@@ -19,34 +19,35 @@ In the Thousand Brains framework, cortical columns (or *learning modules* in
 Monty terms) can be viewed as learning local sensorimotor models of the world.
 Each module integrates sensory input with a location signal and converges on
 hypotheses such as object identity, pose, or other latent structure. These
-internal models evolve over time as learning proceeds.
+models are learned slowly and reused across many experiences.
 
 A key distinction is the classical **fast vs slow learning** split:
 
 - **Neocortex**  
-  Slow, statistical learning; stable object/world models; gradual generalization.
+  Slow, statistical learning; stable and reusable world models; gradual
+  generalization.
 
 - **Hippocampus**  
   Fast learning; episodic binding; rapid association of co-occurring cortical
-  states.
+  states and their temporal relationships.
 
-Importantly, fast learning in the hippocampus appears to rely on specialized
-mechanisms (pattern separation, auto-association, replay), rather than simply
-higher learning rates.
+Importantly, fast learning in the hippocampus relies on specialized mechanisms
+(pattern separation, auto-association, replay), rather than simply higher
+learning rates.
 
 In this view, the hippocampus does **not** store cortical models themselves.
-Instead, it stores **indices** that bind together *specific cortical states*
-that co-occurred in time. Activating such an index later leads to
-**reinstatement** of an approximate cortical state corresponding to a past
-episode. This reinstatement does not rewind cortex exactly, but biases it back
-toward a functionally equivalent region of its state space.
+Instead, it stores **indices** that bind together *specific constellations of
+cortical states* that co-occurred during an experience. Activating such an index
+later does not rewind cortex to a previous internal state, but instead biases
+ongoing cortical inference toward a functionally compatible configuration,
+resulting in approximate **reinstatement**.
 
 ---
 
 ## 2. A Dynamical / Mathematical Framing
 
-A useful abstraction is to treat each cortical learning module as a
-**dynamical system**.
+Each cortical learning module can be treated as a **dynamical system** that
+maintains an internal state and produces predictions about the world.
 
 Let $S_i(t)$ denote the internal state of cortical module $i$ at time $t$.
 The state evolves as:
@@ -57,7 +58,7 @@ $$
 
 where:
 - $x_i(t)$ is sensory or motor input,
-- $\theta_i(t)$ are slowly changing parameters (learning).
+- $\theta_i(t)$ are slowly changing parameters learned from experience.
 
 Each module produces an observable output:
 
@@ -70,30 +71,32 @@ representation (biologically, something like an SDR).
 
 Crucially:
 
-- $S_i(t)$ evolves continuously and is not stored explicitly.
-- Overwriting of internal state is unavoidable due to learning.
+- Internal cortical states $S_i(t)$ are transient and are not stored explicitly.
+- Cortical models are **not time-indexed memories**, but predictive structures
+  whose parameters implicitly reflect past experience.
 
-In this framing, the hippocampus does **not** store $S_i(t)$. Instead, it
-stores a sparse index $H_k$ such that:
+The hippocampus therefore does **not** store $S_i(t)$. Instead, it stores a
+sparse episodic index $H_k$ such that:
 
 $$
 H_k \Rightarrow \{\, y_i(t_k) \,\}_{i \in \mathcal{C}_k}
 $$
 
-where $\mathcal{C}_k$ is the set of cortical modules active during episode $k$.
+where $\mathcal{C}_k$ is the set of cortical modules jointly active during
+episode $k$.
 
-Later, activating $H_k$ induces a **reinstated state**:
+Later, reactivation of $H_k$ biases cortical dynamics, leading to a reconstructed
+state:
 
 $$
-\hat{S}_i(t_k) \approx S_i(t_k)
+\hat{S}_i \approx S_i(t_k)
 $$
 
-not exactly, but sufficiently to reproduce similar predictions and associations.
-This approximation is biologically realistic and computationally sufficient.
+This reconstruction is approximate and context-dependent, but sufficient to
+support recall, prediction, and imagination.
 
-Under this view, cortical models are best seen as **functions of time**, and the
-hippocampus provides indexed access to *earlier evaluations of those functions*,
-rather than frozen snapshots.
+Under this view, **time is represented in the hippocampus through the sequencing
+of indices**, not through time-indexed cortical models.
 
 ---
 
@@ -101,46 +104,47 @@ rather than frozen snapshots.
 
 As currently implemented, Monty captures:
 
-- evolving cortical-like models,
+- slowly evolving cortical-like models,
 - local inference within modules,
 - consensus across modules.
 
 However, it appears to lack:
 
-- a mechanism for **time-indexed reinstatement** of module outputs,
-- explicit **episodic binding** across modules,
-- **replay of trajectories** of internal model states.
+- an explicit mechanism for **episodic indexing and reinstatement**,
+- binding of distributed module outputs into temporally ordered episodes,
+- **replay of trajectories** of episodic indices that could support recall,
+  prediction, or imagination.
 
-Learning modules evolve, but earlier functional states are not accessible once
-overwritten. As a result, reasoning operates only on the current configuration
-of models, not on their history.
+Because learning modules continuously overwrite internal state, cortex alone
+cannot retrieve or reason over specific past experiences. As a result, reasoning
+operates primarily on the current configuration of models, rather than over
+episodic history.
 
 ---
 
 ## 4. Engineering Observation: A Simpler Abstraction Is Possible
 
-In biological systems, reinstating past cortical states requires complex
-attractor dynamics. In Monty, however, learning modules already expose explicit
-outputs $y_i(t)$.
+In biological systems, reinstating past cortical configurations relies on
+hippocampal attractor dynamics (e.g. DG–CA3–CA1 loops). In Monty, however,
+learning modules already expose explicit outputs $y_i(t)$.
 
-This allows a minimal, engineering-friendly abstraction of hippocampal
-indexing:
+This suggests a minimal **engineering abstraction** of hippocampal indexing:
 
-- For each learning module $i$, store $y_i(t)$ over time (or at selected
-  timesteps).
-- Represent episodes as ordered sets:
+- Treat joint module outputs as episodic observations.
+- Store selected tuples $(i, y_i)$ indexed by episode identifiers.
+- Represent episodes as ordered sequences of such indices:
 
 $$
 E_k = \{\, (i, y_i(t_k)) \mid i \in \mathcal{C}_k \,\}
 $$
 
-- Implement replay by re-injecting these stored outputs as priors, constraints,
-  or contextual signals for inference, rather than rewinding internal state
-  exactly.
+Replay can then be approximated by re-injecting these stored outputs as biases,
+priors, or contextual constraints on ongoing inference, rather than by rewinding
+internal module state.
 
-This approach does not aim to mechanistically replicate hippocampal circuitry,
-but to replicate its **computational role**: fast episodic binding and
-reinstatement.
+This abstraction does not claim biological equivalence, but aims to replicate
+the **computational role** of the hippocampus: fast episodic binding, sequencing,
+and index-driven reinstatement.
 
 ---
 
@@ -148,24 +152,24 @@ reinstatement.
 
 Adding such a mechanism would allow Monty to:
 
-- reason over the **evolution** of its own internal representations,
-- support **episodic memory** and replay,
-- enable **counterfactual reasoning** and potentially creative recombination,
-- provide a concrete bridge between **fast (episodic)** and **slow (semantic)**
-  learning.
+- reason over **episodic trajectories** rather than only current state,
+- support memory-guided prediction and simulation of future outcomes,
+- enable counterfactual reasoning and controlled recombination,
+- provide a functional bridge between **fast (episodic)** and **slow (semantic)**
+  learning systems.
 
 Without this, Monty remains strong at perception and recognition, but limited in
-temporal abstraction and episodic reasoning.
+temporal abstraction, planning, and imagination.
 
 ---
 
 ## 6. Open Questions
 
-- Does this interpretation of hippocampal function align with current
-  neuroscientific understanding?
-- Is the dynamical / index-based framing the right level of abstraction?
-- What is the minimal replay and reinstatement mechanism needed to gain these
-  capabilities in Monty?
+- What is the minimal episodic indexing and replay mechanism needed to support
+  these capabilities?
+- How should replay be constrained to balance novelty and coherence?
+- How should hippocampal replay interact with goal-directed attention and
+  evaluation mechanisms?
 
 These questions are intended as starting points for further discussion and
 experimentation.
